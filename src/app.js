@@ -3,10 +3,11 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
-const morgan = require('morgan');
+const pinoHttp = require('pino-http');
 
 const routes = require('./routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+const logger = require('./utils/logger');
 
 function createApp() {
   const app = express();
@@ -17,7 +18,16 @@ function createApp() {
   app.use(express.urlencoded({ extended: true }));
 
   if (process.env.NODE_ENV !== 'test') {
-    app.use(morgan('dev'));
+    app.use(
+      pinoHttp({
+        logger,
+        genReqId: (req, res) => req.headers['x-request-id'] || undefined,
+        customProps: (req) => ({
+          ip: req.ip,
+          userId: req.user?.userId
+        })
+      })
+    );
   }
 
   app.set('trust proxy', true);

@@ -51,6 +51,7 @@ describe('POST /api/auth/login', () => {
       .send({ username: 'oper1', password: 'Password@123', loginForm: 'web' });
     expect(res.status).toBe(200);
     expect(typeof res.body.token).toBe('string');
+    expect(typeof res.body.refreshToken).toBe('string');
     expect(res.body.user.roleName).toBe('Operator');
     const status = await LoginStatus.findOne({ username: 'oper1' });
     expect(status.success).toBe(true);
@@ -79,5 +80,50 @@ describe('POST /api/auth/login', () => {
   test('returns 400 on missing credentials', async () => {
     const res = await request(app).post('/api/auth/login').send({});
     expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/auth/refresh', () => {
+  test('rotates refresh token and returns a new access token', async () => {
+    await makeUser({ username: 'oper1', roleName: 'Operator' });
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'oper1', password: 'Password@123', loginForm: 'web' });
+    expect(loginRes.status).toBe(200);
+
+    const refreshRes = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: loginRes.body.refreshToken });
+    expect(refreshRes.status).toBe(200);
+    expect(typeof refreshRes.body.token).toBe('string');
+    expect(typeof refreshRes.body.refreshToken).toBe('string');
+    expect(refreshRes.body.refreshToken).not.toBe(loginRes.body.refreshToken);
+  });
+
+  test('rejects invalid refresh token', async () => {
+    const res = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: 'not-a-token' });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /api/auth/logout', () => {
+  test('revokes refresh token (204) and prevents reuse', async () => {
+    await makeUser({ username: 'oper1', roleName: 'Operator' });
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'oper1', password: 'Password@123', loginForm: 'web' });
+    expect(loginRes.status).toBe(200);
+
+    const logoutRes = await request(app)
+      .post('/api/auth/logout')
+      .send({ refreshToken: loginRes.body.refreshToken });
+    expect(logoutRes.status).toBe(204);
+
+    const refreshRes = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: loginRes.body.refreshToken });
+    expect(refreshRes.status).toBe(401);
   });
 });

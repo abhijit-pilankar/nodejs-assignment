@@ -27,4 +27,16 @@ const login = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
-module.exports = { register, login };
+const refresh = asyncHandler(async (req, res) => {
+  const { refreshToken } = req.body;
+  const result = await authService.refresh({ refreshToken, ipAddress: req.ip });
+  res.json(result);
+});
+
+const logout = asyncHandler(async (req, res) => {
+  const { refreshToken } = req.body;
+  await authService.logout({ refreshToken, ipAddress: req.ip });
+  res.status(204).send();
+});
+
+module.exports = { register, login, refresh, logout };

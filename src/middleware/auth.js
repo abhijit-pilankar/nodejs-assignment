@@ -1,6 +1,7 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const env = require('../config/env');
 const ApiError = require('../utils/ApiError');
 
@@ -13,6 +14,21 @@ function signToken(payload, options = {}) {
 
 function verifyToken(token) {
   return jwt.verify(token, env.jwtSecret);
+}
+
+function signRefreshToken(payload, options = {}) {
+  return jwt.sign(payload, env.refreshTokenSecret, {
+    expiresIn: env.refreshTokenExpiresIn,
+    ...options
+  });
+}
+
+function verifyRefreshToken(token) {
+  return jwt.verify(token, env.refreshTokenSecret);
+}
+
+function generateJti() {
+  return crypto.randomBytes(16).toString('hex');
 }
 
 function requireAuth(req, res, next) {
@@ -51,4 +67,12 @@ function requireRole(...allowed) {
   };
 }
 
-module.exports = { signToken, verifyToken, requireAuth, requireRole };
+module.exports = {
+  signToken,
+  verifyToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  generateJti,
+  requireAuth,
+  requireRole
+};

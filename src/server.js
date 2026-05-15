@@ -3,18 +3,17 @@
 const env = require('./config/env');
 const { connect } = require('./config/db');
 const createApp = require('./app');
+const logger = require('./utils/logger');
 
 async function bootstrap() {
   try {
     await connect();
     const app = createApp();
     app.listen(env.port, () => {
-      // eslint-disable-next-line no-console
-      console.log(`API listening on port ${env.port} (${env.nodeEnv})`);
+      logger.info({ port: env.port, nodeEnv: env.nodeEnv }, 'API listening');
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to start server:', err);
+    logger.fatal({ err }, 'Failed to start server');
     process.exit(1);
   }
 }

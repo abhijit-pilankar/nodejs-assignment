@@ -1,6 +1,7 @@
 'use strict';
 
 const ApiError = require('../utils/ApiError');
+const logger = require('../utils/logger');
 
 function notFoundHandler(req, res, next) {
   next(ApiError.notFound(`Route not found: ${req.method} ${req.originalUrl}`));
@@ -27,6 +28,19 @@ function errorHandler(err, req, res, next) {
   if (process.env.NODE_ENV === 'development') {
     body.error.stack = err.stack;
   }
+
+  const headers = req.headers || {};
+  const reqId = req.id || headers['x-request-id'];
+  logger.error(
+    {
+      err,
+      reqId,
+      method: req.method,
+      path: req.originalUrl,
+      statusCode: status
+    },
+    'Request failed'
+  );
 
   res.status(status).json(body);
 }
